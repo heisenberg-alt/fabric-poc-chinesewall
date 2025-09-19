@@ -1,0 +1,36 @@
+{
+  "labels": [
+    {
+      "name": "Confidential - Entity A Only",
+      "id": "REPLACE-LABEL-ID-ENTITYA",
+      "enforceDowngradeJustification": true
+    },
+    {
+      "name": "Confidential - Entity B Only",
+      "id": "REPLACE-LABEL-ID-ENTITYB",
+      "enforceDowngradeJustification": true
+    },
+    {
+      "name": "Internal - Shared Market Data (Read Only)",
+      "id": "REPLACE-LABEL-ID-SHARED"
+    }
+  ],
+  "dlpPolicies": [
+    {
+      "name": "Fabric Sensitive Data Policy",
+      "scope": [
+        "Fabric"
+      ],
+      "conditions": [
+        "CreditCardNumber",
+        "IBAN",
+        "NationalID"
+      ],
+      "actions": [
+        "AlertAdmin",
+        "RestrictAccess"
+      ],
+      "notes": "Import via Purview portal; map to your sensitive info types and actions."
+    }
+  ]
+}

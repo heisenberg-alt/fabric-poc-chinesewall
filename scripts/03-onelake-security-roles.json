@@ -1,0 +1,13 @@
+
+{
+  "roles": [
+    {
+      "name": "Consumer_ReadOnly",
+      "permissions": ["Read"],
+      "scope": { "type": "Table", "path": "Tables/MarketData" },
+      "members": [
+        "aadgroup:REPLACE-ENTITYB-MarketData-READERS-OBJECTID"
+      ]
+    }
+  ]
+}
