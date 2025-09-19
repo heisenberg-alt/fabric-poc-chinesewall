@@ -1,7 +1,7 @@
 
 # Microsoft Fabric POC – Data Segregation ("Chinese Wall")
 
-This repository provides a **generic**, customer‑neutral proof‑of‑concept to enforce a strict segregation of data and duties between two logical entities in a **single Microsoft Entra tenant and one Fabric capacity**.
+This repository provides a **generic**, customer/industry‑neutral proof‑of‑concept to enforce a strict segregation of data and duties between two logical entities in a **single Microsoft Entra tenant and one Fabric capacity**.
 
 ## Key Capabilities
 - Separate **workspaces** and **domains** for two entities (e.g., `Entity A` and `Entity B`).
@@ -78,6 +78,131 @@ fabric-poc-chinesewall/
 
 ---
 
+## Testing the POC
+
+After deployment, validate that the POC works correctly using the provided test scripts.
+
+### Prerequisites for Testing
+
+1. **Set Access Token**: Obtain a valid access token for Fabric/Power BI API:
+   ```powershell
+   # Using Power BI PowerShell module
+   Connect-PowerBIServiceAccount
+   $token = (Get-PowerBIAccessToken).AccessToken
+   $env:ACCESS_TOKEN = $token
+   
+   # OR using Azure CLI
+   $token = az account get-access-token --resource https://api.fabric.microsoft.com --query accessToken -o tsv
+   $env:ACCESS_TOKEN = $token
+   ```
+
+2. **Gather Required IDs**: You'll need:
+   - Provider workspace ID
+   - Consumer workspace ID  
+   - Provider lakehouse/warehouse item ID
+   - Consumer lakehouse/warehouse item ID
+   - SQL connection string (for database tests)
+
+### Quick Test Method
+
+Use the comprehensive test runner with a configuration file:
+
+1. **Create test configuration**:
+   ```powershell
+   cp scripts/test-config-sample.json scripts/test-config.json
+   # Edit test-config.json with your actual IDs
+   ```
+
+2. **Run all tests**:
+   ```powershell
+   cd scripts
+   .\Test-FabricPOC.ps1 -ConfigFile "test-config.json" -ExportResults -Verbose
+   ```
+
+### Individual Test Scripts
+
+Run specific test categories:
+
+1. **Connectivity Tests** - Basic API access and workspace connectivity:
+   ```powershell
+   .\Test-Connectivity.ps1 -ProviderWorkspaceId "your-provider-id" -ConsumerWorkspaceId "your-consumer-id" -TestEndpoints
+   ```
+
+2. **Security Tests** - Workspace isolation, OneLake security, RLS/CLS:
+   ```powershell
+   .\Test-Security.ps1 -ProviderWorkspaceId "your-provider-id" -ConsumerWorkspaceId "your-consumer-id" -SqlConnectionString "your-sql-connection"
+   ```
+
+3. **Comprehensive Validation** - All POC components:
+   ```powershell
+   .\09-validate.ps1 -ProviderWorkspaceId "your-provider-id" -ConsumerWorkspaceId "your-consumer-id" -ProviderLakehouseItemId "your-provider-item" -ConsumerLakehouseItemId "your-consumer-item" -SqlConnectionString "your-sql-connection" -Verbose
+   ```
+
+### Manual Test Scenarios
+
+Beyond automated tests, manually verify these scenarios:
+
+#### A. Workspace Isolation
+- **Test**: Consumer user attempts to access Provider workspace directly
+- **Expected**: Access denied, workspace not visible
+- **Validation**: Log in as Entity B user, check workspace list
+
+#### B. OneLake Data Access
+- **Test**: Consumer user accesses MarketData via shortcut
+- **Expected**: Can read shortcut data, cannot access other Provider folders
+- **Validation**: Browse Consumer lakehouse, verify shortcut works but other paths are inaccessible
+
+#### C. SQL Row-Level Security
+- **Test**: Query MarketData table as different users
+- **Expected**: Each user sees only their authorized data rows
+- **Validation**: 
+   ```sql
+   -- Connect as Entity A user
+   SELECT DISTINCT EntityId FROM dbo.MarketData; -- Should see only Entity A data
+   
+   -- Connect as Entity B user  
+   SELECT DISTINCT EntityId FROM dbo.MarketData; -- Should see only Entity B data
+   ```
+
+#### D. Power BI Semantic Model Security
+- **Test**: Attempt to create new reports from Consumer workspace dataset
+- **Expected**: Users without Build permission cannot create new artifacts
+- **Validation**: Try "Analyze in Excel" or "Create Report" - should be restricted
+
+#### E. Data Export Controls
+- **Test**: Export data from Power BI report or Fabric notebook
+- **Expected**: Purview labels applied, DLP policies triggered if configured
+- **Validation**: Check audit logs for export events and policy actions
+
+### Expected Test Results
+
+**Successful POC should show**:
+- ✅ All connectivity tests pass
+- ✅ Workspace isolation confirmed (no cross-entity access)
+- ✅ OneLake security roles properly configured
+- ✅ Shortcuts working with limited scope
+- ✅ RLS filtering data by entity
+- ✅ Power BI permissions properly restricted
+- ✅ No users with excessive cross-workspace access
+
+**Common Issues**:
+- ❌ Missing OneLake security roles → Unrestricted data access
+- ❌ No RLS policy → All users see all data
+- ❌ Overly permissive workspace roles → Cross-entity access
+- ❌ Missing Power BI dataset permissions → Unrestricted report creation
+
+### Test Result Files
+
+Test scripts generate detailed reports:
+- `connectivity-test-results-YYYYMMDD-HHMMSS.json` - API and workspace connectivity
+- `security-test-results-YYYYMMDD-HHMMSS.json` - Security controls validation  
+- `test-results-YYYYMMDD-HHMMSS.json` - Comprehensive validation results
+- `fabric-poc-test-report-YYYYMMDD-HHMMSS.json` - Full test execution summary
+
+Review these files for detailed findings and recommendations.
+
+---
+
 ## License
 This project is licensed under the MIT License – see [LICENSE](LICENSE).
 
@@ -98,6 +223,8 @@ chmod +x scripts/run-all.sh
 ```
 This will:
 1) Prompt for workspace/item/group IDs
+2) Acquire an access token via `az account get-access-token`
+3) Update templates and run role assignment, OneLake security, and shortcut creation.
 2) Acquire an access token via `az account get-access-token`
 3) Update templates and run role assignment, OneLake security, and shortcut creation.
 ```

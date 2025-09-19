@@ -1,0 +1,8 @@
+{
+  "ProviderWorkspaceId": "REPLACE-WITH-PROVIDER-WORKSPACE-ID",
+  "ConsumerWorkspaceId": "REPLACE-WITH-CONSUMER-WORKSPACE-ID", 
+  "ProviderLakehouseItemId": "REPLACE-WITH-PROVIDER-LAKEHOUSE-ID",
+  "ConsumerLakehouseItemId": "REPLACE-WITH-CONSUMER-LAKEHOUSE-ID",
+  "SqlConnectionString": "Server=your-workspace.datawarehouse.fabric.microsoft.com;Database=your-warehouse;Authentication=Active Directory Interactive;",
+  "TestUserUpn": "testuser@yourdomain.com"
+}
